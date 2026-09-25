@@ -30,8 +30,13 @@ async function checkAndSendBirthdays(supabase, sock) {
     for (const member of todaysBirthdays) {
       const phoneNumber = member.phone.replace(/\D/g, '');
       const jid = `${phoneNumber}@s.whatsapp.net`;
-      const message = `🎉 Happy Birthday, ${member.name}! Wishing you a wonderful day and a fantastic year ahead! 🎂🎈`;
+      const message = `🎉 Happy Birthday, ${member.name}! 
+      
+      Barakallahu fii umrik...
+      Wishing you a wonderful day and a fantastic year ahead! 
+      🎂🎈`;
 
+    
       await sock.sendMessage(jid, { text: message });
       console.log(`✅ Sent birthday greeting to ${member.name}`);
     }
