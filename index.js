@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -11,23 +11,33 @@ async function startBot() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('connection.update', async (update) => {
-    const { connection, qr } = update;
+    const { connection, lastDisconnect } = update;
 
-    // Request pairing code when the socket triggers connection updates and isn't registered yet
-    if (!sock.authState.creds.registered) {
-      const phoneNumber = "6281615735447"; // Your phone number without '+'
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+      if (shouldReconnect) {
+        startBot();
+      }
+    } else if (connection === 'open') {
+      console.log('✅ Bot connected to WhatsApp successfully!');
+    }
+  });
+
+  // Request pairing code safely if not already registered
+  if (!sock.authState.creds.registered) {
+    const phoneNumber = "6281615735447"; // Your phone number without '+'
+    
+    // Give the socket a few seconds to establish its initial handshake
+    setTimeout(async () => {
       try {
         const code = await sock.requestPairingCode(phoneNumber);
         console.log(`🔑 Your WhatsApp Pairing Code: ${code}`);
       } catch (err) {
         console.error("Error getting pairing code:", err);
       }
-    }
-
-    if (connection === 'open') {
-      console.log('✅ Bot connected to WhatsApp successfully!');
-    }
-  });
+    }, 4000);
+  }
 }
 
 startBot();
