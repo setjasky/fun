@@ -1,3 +1,9 @@
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase client
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const checkAndSendBirthdays = require('./birthdayChecker');
+
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const express = require('express');
 const app = express();
@@ -32,6 +38,8 @@ async function startBot() {
       }
     } else if (connection === 'open') {
       console.log('✅ Bot connected to WhatsApp successfully!');
+      // Check birthdays right when the bot connects
+      await checkAndSendBirthdays(supabase, sock);
     }
   });
 
@@ -52,3 +60,53 @@ async function startBot() {
 }
 
 startBot();
+
+// Function to check birthdays and send messages
+async function checkAndSendBirthdays(sock) {
+  try {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedToday = `${month}-${day}`;
+
+    console.log(`🔍 Checking birthdays for: ${formattedToday}`);
+
+    // Fetch all members from Supabase
+    const { data: members, error } = await supabase
+      .from('members')
+      .select('*');
+
+    if (error) {
+      console.error('❌ Error fetching members:', error);
+      return;
+    }
+
+    // Filter members whose birth_date month-day matches today
+    const todaysBirthdays = members.filter(member => {
+      // member.birth_date is usually "YYYY-MM-DD"
+      const birthDateStr = member.birth_date; 
+      const memberMonthDay = birthDateStr.slice(5, 10); // Extracts "MM-DD"
+      return memberMonthDay === formattedToday;
+    });
+
+    if (todaysBirthdays.length === 0) {
+      console.log('📭 No birthdays found for today.');
+      return;
+    }
+
+    for (const member of todaysBirthdays) {
+      const phoneNumber = member.phone.replace(/\D/g, '');
+      const jid = `${phoneNumber}@s.whatsapp.net`;
+      const message = `🎉 Happy Birthday, ${member.name}! 
+      Barakallahu fii umrik... 
+      
+      Wishing you a wonderful day and a fantastic year ahead! 
+      🎂🎈`;
+
+      await sock.sendMessage(jid, { text: message });
+      console.log(`✅ Sent birthday greeting to ${member.name}`);
+    }
+  } catch (err) {
+    console.error('❌ Error checking birthdays:', err);
+  }
+}
