@@ -30,6 +30,22 @@ async function connectToWhatsApp() {
     logger: pino({ level: 'silent' }) // Silence noisy logs
   });
 
+// Check if the session is already registered; if not, request a pairing code
+if (!sock.authState.creds.registered) {
+  // Format the number without the '+' sign
+  const phoneNumber = "6281615735447";
+  
+  // Wait a short moment for the connection to stabilize before requesting
+  setTimeout(async () => {
+    try {
+      const code = await sock.requestPairingCode(phoneNumber);
+      console.log(`🔑 Your WhatsApp Pairing Code: ${code}`);
+    } catch (error) {
+      console.error('Failed to request pairing code:', error);
+    }
+  }, 3000);
+}
+
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('connection.update', (update) => {
