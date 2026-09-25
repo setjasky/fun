@@ -1,0 +1,16 @@
+{
+  "name": "whatsapp-birthday-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.x.x",
+    "@whiskeysockets/baileys": "^6.x.x",
+    "express": "^4.x.x",
+    "node-cron": "^3.x.x",
+    "pino": "^8.x.x",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
